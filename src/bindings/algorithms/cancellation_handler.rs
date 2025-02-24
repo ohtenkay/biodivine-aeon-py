@@ -8,6 +8,7 @@ use std::{
     },
     time::Duration,
 };
+use pyo3::Python;
 
 /// An implementation of [CancellationHandler] that cannot be cancelled.
 #[derive(Copy, Clone, Debug)]
@@ -23,6 +24,9 @@ pub struct CancelTokenTimer {
     cancelled: Arc<AtomicBool>,
     started: Arc<AtomicBool>,
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct PythonCancel(Option<Box<dyn CancellationHandler>>);
 
 pub trait CancellationHandler: Send + Sync + DynClone {
     /// Returns `true` if the computation associated with this handler is cancelled.
@@ -49,6 +53,18 @@ impl CancellationHandler for CancelTokenAtomic {
 impl CancellationHandler for CancelTokenTimer {
     fn is_cancelled(&self) -> bool {
         self.cancelled.load(SeqCst)
+    }
+}
+
+impl CancellationHandler for PythonCancel {
+    fn is_cancelled(&self) -> bool {
+        if let Some(handler) = self.0.as_ref() {
+            if handler.is_cancelled() {
+                return true;
+            }
+        }
+
+        Python::with_gil(|py| py.check_signals()).is_err()
     }
 }
 

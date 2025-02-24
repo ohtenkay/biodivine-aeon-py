@@ -1,0 +1,29 @@
+A, B & C
+B, g(A)
+C, f(A, C)
+
+product_{f \in unknown_functions} 2^(2^|f_inputs|)
+
+g(A) = A
+g(A) = !A
+g(A) = true
+g(A) = false
+
+
+#[pyclass]
+ReachabilityConfig {
+	... "native" types ...
+
+	.set_cancellation_py(handler) {
+		handler = handler + PythonCancel
+		self.set_cancellation_rs(handler)
+	}
+
+	.set_cancellation_rs(handler) {}
+}
+
+Reachability
+	.with_config(config: ReachabilityConfig)
+	.forward_closed_subset_py(self, py: Python, initial: ColoredVertexSet) -> .forward_closed_subset_rs
+	.forward_closed_subset_rs(self, initial: GraphColoredVertices)
+

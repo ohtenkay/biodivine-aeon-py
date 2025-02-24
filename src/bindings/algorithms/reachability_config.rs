@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-
+use biodivine_lib_param_bn::symbolic_async_graph::SymbolicAsyncGraph;
 use pyo3::{pyclass, pymethods, Py};
 
 use crate::bindings::{
@@ -58,6 +58,12 @@ pub struct ReachabilityConfig {
     ///
     /// Default: `usize::MAX`.
     pub steps_limit: usize,
+}
+
+impl ReachabilityConfig {
+
+
+
 }
 
 #[pymethods]

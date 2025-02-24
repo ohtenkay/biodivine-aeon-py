@@ -1,5 +1,5 @@
 use log::{debug, info, trace};
-use pyo3::{pyclass, pymethods, Py, PyResult, Python};
+use pyo3::{pyclass, pymethods, Py, PyRef, PyResult, Python};
 
 use crate::{
     bindings::{
@@ -32,6 +32,12 @@ impl Reachability {
     fn config(&self) -> &ReachabilityConfig {
         self.config.get()
     }
+}
+
+fn main() {
+    let config: ReachabilityConfig = Default::default();
+    let reach = Reachability::with_config(config);
+    reach.backward_closed_superset()
 }
 
 #[pymethods]
