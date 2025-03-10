@@ -29,6 +29,8 @@ zip = "2.1.3"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
 either = "1.13.0"
+env_logger = "0.11.5"
+pyo3-log = "0.12.1"
 
 # Include Z3 dependencies as strictly as possible, we don't want
 # this to change because it might break our release builds.

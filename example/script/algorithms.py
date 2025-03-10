@@ -1,13 +1,17 @@
 import sys
 
 from biodivine_aeon import *
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 bn = BooleanNetwork.from_file(sys.argv[1])
 bn = bn.infer_valid_graph()
 print("Boolean network loaded.\n")
 
 stg = AsynchronousGraph(bn)
-config = ReachabilityConfig.with_graph(stg).cancel_after(10)
+config = ReachabilityConfig.with_graph(stg)#.cancel_after(10)
 print("Reachability config created.\n")
 
 singleton = stg.mk_unit_colored_vertices().pick_singleton()
