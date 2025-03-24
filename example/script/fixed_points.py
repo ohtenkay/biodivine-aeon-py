@@ -31,8 +31,12 @@ import sys
 bn = BooleanNetwork.from_file(sys.argv[1])
 bn = bn.infer_valid_graph()
 
+#for x in bn.inputs():
+#	bn.set_update_function(x, "true")
+
 # If you want to inline constant input nodes, uncomment this line:
-#bn = bn.inline_constants(infer_constants=True, repair_graph=True)
+# bn = bn.inline_constants(infer_constants=True, repair_graph=True)
+# bn = bn.inline_inputs(infer_inputs=True, repair_graph=True)
 
 limit = None
 if len(sys.argv) == 3:
@@ -41,12 +45,12 @@ if len(sys.argv) == 3:
 stg = AsynchronousGraph(bn)
 
 # Assert that the network is fully specified.
-assert stg.mk_unit_colors().cardinality() == 1
+# assert stg.mk_unit_colors().cardinality() == 1
 
 fixed_points = FixedPoints.symbolic(stg)
 
 if limit is None:
-	print(f"{fixed_points.cardinality()}")
+	print(f"{fixed_points.cardinality()} ({fixed_points.vertices().cardinality()} | {fixed_points.colors().cardinality()})")
 else:
 	count = 0
 	for vertex in fixed_points.vertices():

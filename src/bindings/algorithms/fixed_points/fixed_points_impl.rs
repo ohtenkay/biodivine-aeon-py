@@ -83,6 +83,8 @@ impl FixedPoints {
             })
             .collect::<Result<Vec<_>, FixedPointsError>>()?;
 
+        assert!(to_merge.len() > 0);
+
         while to_merge.len() > 1 {
             to_merge.sort_by_key(|it| -(it.symbolic_size() as isize));
 
@@ -103,14 +105,17 @@ impl FixedPoints {
         }
 
         // TODO: ohtenkay - discuss this error
-        let Some(fixed_points) = to_merge.pop() else {
+        let Some(fixed_points) = to_merge.pop().expect(
+            "Merged sets cannot be empty."
+        );
+        /*else {
             info!(
                 target: TARGET_NAIVE_SYMBOLIC,
                 "No fixed points found using {} BDD nodes.",
                 restriction.symbolic_size()
             );
             return Err(FixedPointsError::NoFixedPointsFound);
-        };
+        };*/
 
         info!(
             target: TARGET_NAIVE_SYMBOLIC,
@@ -299,6 +304,8 @@ impl FixedPoints {
         mut projections: HashSet<BddVariable>,
         target: &str,
     ) -> Result<Bdd, FixedPointsError> {
+        //let mut partial_result = self.restriction;
+
         // First, assign each merge item a unique integer identifier.
         let mut to_merge: HashMap<usize, Bdd> = to_merge.into_iter().enumerate().collect();
 
@@ -383,6 +390,10 @@ impl FixedPoints {
                 result = best_result;
                 to_merge.remove(&best_index);
                 merged.insert(best_index);
+
+                /*if best_result.is_subset(partial_result) {
+                    partial_result = best_result;
+                }*/
 
                 if result.is_false() {
                     return Ok(universe.mk_false());

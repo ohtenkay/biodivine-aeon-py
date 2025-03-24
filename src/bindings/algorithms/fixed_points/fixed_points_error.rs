@@ -17,7 +17,7 @@ pub enum FixedPointsError {
     // #[error("steps limit exceeded")]
     // StepsLimitExceeded(GraphColoredVertices),
     // #[error("BDD size limit exceeded")]
-    // BddSizeLimitExceeded(GraphColoredVertices),
+    // BddSizeLimitExceeded(GraphColoredVertices),  // Sum of all BDD sizes in the to_merge vector, possibly plus the result BDD.
     // #[error("subgraph set not compatible with the given graph or initial states")]
     // InvalidSubgraph,
 }
