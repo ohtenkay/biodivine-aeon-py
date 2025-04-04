@@ -83,7 +83,7 @@ impl FixedPoints {
                 let can_step = stg.var_can_post(var, stg.unit_colored_vertices());
                 let is_stable = restriction.minus(&can_step);
 
-                is_cancelled!(self)?;
+                is_cancelled!(self, restriction)?;
 
                 trace!(
                     target: TARGET_NAIVE_SYMBOLIC,
@@ -106,12 +106,13 @@ impl FixedPoints {
                 to_merge.iter().map(|it| it.symbolic_size()).sum::<usize>(),
             );
 
-            // TODO: ohtenkay - is there a partial result in any of the algorithms?
-            is_cancelled!(self)?;
-
             let x = to_merge.pop().unwrap();
             let y = to_merge.pop().unwrap();
-            to_merge.push(x.intersect(&y));
+            let intersection = x.intersect(&y);
+            // TODO: discuss - is this semantically correct?
+            is_cancelled!(self, &intersection)?;
+
+            to_merge.push(intersection);
         }
 
         let fixed_points = to_merge
@@ -154,11 +155,11 @@ impl FixedPoints {
             to_merge.push(restriction.as_bdd().clone());
         }
 
-        is_cancelled!(self)?;
+        is_cancelled!(self, restriction)?;
 
         let fixed_points = self.symbolic_merge(to_merge, HashSet::default(), TARGET_SYMBOLIC)?;
 
-        is_cancelled!(self)?;
+        is_cancelled!(self, &fixed_points)?;
 
         let fixed_points = stg.unit_colored_vertices().copy(fixed_points);
 
@@ -198,13 +199,15 @@ impl FixedPoints {
             .cloned()
             .collect();
 
-        is_cancelled!(self)?;
+        is_cancelled!(self, restriction)?;
 
         let bdd = self.symbolic_merge(to_merge, projections, TARGET_SYMBOLIC_VERTICES)?;
 
         let vertices = stg.empty_colored_vertices().vertices().copy(bdd);
 
-        is_cancelled!(self)?;
+        // TODO: discuss - should be vertices, refactoring needed for FixedPointsError,
+        // what is the chance that this triggers? This is the end of the algorithm, so the chance is extremely low.
+        is_cancelled!(self, restriction)?;
 
         info!(
             target: TARGET_SYMBOLIC_VERTICES,
@@ -241,13 +244,15 @@ impl FixedPoints {
             .cloned()
             .collect();
 
-        is_cancelled!(self)?;
+        is_cancelled!(self, restriction)?;
 
         let bdd = self.symbolic_merge(to_merge, projections, TARGET_SYMBOLIC_COLORS)?;
 
         let colors = stg.empty_colored_vertices().colors().copy(bdd);
 
-        is_cancelled!(self)?;
+        // TODO: discuss - should be colors, refactoring needed for FixedPointsError,
+        // what is the chance that this triggers? This is the end of the algorithm, so the chance is extremely low.
+        is_cancelled!(self, restriction)?;
 
         info!(
             target: TARGET_SYMBOLIC_COLORS,
@@ -270,7 +275,7 @@ impl FixedPoints {
                 let can_step = stg.var_can_post(var, stg.unit_colored_vertices());
                 let is_stable = stg.unit_colored_vertices().minus(&can_step);
 
-                is_cancelled!(self)?;
+                is_cancelled!(self, &self.config().restriction)?;
 
                 trace!(
                     target: target,
@@ -295,6 +300,10 @@ impl FixedPoints {
     ) -> Result<Bdd, FixedPointsError> {
         // First, assign each merge item a unique integer identifier.
         let mut to_merge: HashMap<usize, Bdd> = to_merge.into_iter().enumerate().collect();
+        // TODO: discuss - there already exists a result variable that gets updated, is this
+        // necessary?
+        // let mut partial_result = self.config().restriction.as_bdd().clone();
+        let restriction = &self.config().restriction;
 
         // And compute the support set for each of them.
         let support_sets: HashMap<usize, HashSet<BddVariable>> = to_merge
@@ -320,7 +329,7 @@ impl FixedPoints {
         let mut result = universe.mk_true();
         let mut merged = HashSet::new();
 
-        is_cancelled!(self)?;
+        is_cancelled!(self, restriction)?;
 
         /*
            Note to self: It seems that not all projections are always beneficial to the BDD size.
@@ -339,7 +348,7 @@ impl FixedPoints {
                     result = result.var_exists(p_var);
                     projections.remove(&p_var);
 
-                    is_cancelled!(self)?;
+                    is_cancelled!(self, &result)?;
 
                     trace!(
                         target: target,
@@ -368,7 +377,7 @@ impl FixedPoints {
                     biodivine_lib_bdd::op_function::and,
                 );
 
-                is_cancelled!(self)?;
+                is_cancelled!(self, &result)?;
 
                 if let Some(bdd) = bdd {
                     // At this point, the size of the BDD should be smaller or equal to the
@@ -387,6 +396,12 @@ impl FixedPoints {
                 to_merge.remove(&best_index);
                 merged.insert(best_index);
 
+                // TODO: discuss - is this necessary? GraphColoredVertices would have to be built
+                // every time
+                // if best_result.is_subset(partial_result) {
+                //     partial_result = best_result;
+                // }
+
                 if result.is_false() {
                     return Ok(universe.mk_false());
                 }
@@ -400,7 +415,8 @@ impl FixedPoints {
             }
         }
 
-        is_cancelled!(self)?;
+        // TODO: discuss - same question with the chance of triggering this as above
+        is_cancelled!(self, &result)?;
 
         info!(target: target, "Merge finished with {} BDD nodes.", result.size());
 
@@ -464,6 +480,7 @@ impl FixedPointsPython {
 
     pub fn symbolic_vertices(&self) -> PyResult<VertexSet> {
         let result_set = self.inner.symbolic_vertices()?;
+
         Ok(VertexSet::mk_native(
             self.symbolic_context.clone(),
             result_set,
@@ -472,6 +489,7 @@ impl FixedPointsPython {
 
     pub fn symbolic_colors(&self) -> PyResult<ColorSet> {
         let result_set = self.inner.symbolic_colors()?;
+
         Ok(ColorSet::mk_native(
             self.symbolic_context.clone(),
             result_set,

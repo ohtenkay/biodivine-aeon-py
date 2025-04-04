@@ -30,14 +30,17 @@ where
 /// The same as [CancellationHandler::test], but you can provide a partial result that will
 /// be returned if the operation is cancelled. The value is returned back as `Ok` if
 /// the operation is not cancelled (so there should be no need to clone it).
-pub fn test_with_partial<C, T>(handler: &C, partial: T) -> Result<T, CancellationError<T>>
+// TODO: discuss - this change requires cloning when cancelled, but is needed for using restriction
+// in FixedPoints if we want restriction as part of the config
+pub fn test_with_partial<C, T>(handler: &C, partial: &T) -> Result<(), CancellationError<T>>
 where
     C: CancellationHandler,
-    T: Sized + Debug + 'static,
+    T: Sized + Debug + Clone + 'static,
+    // TODO: discuss - why is 'static needed here?
 {
     if handler.is_cancelled() {
-        Err(CancellationError::with_partial_data(partial))
+        Err(CancellationError::with_partial_data(partial.clone()))
     } else {
-        Ok(partial)
+        Ok(())
     }
 }
