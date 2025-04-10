@@ -39,15 +39,16 @@ impl TrapSpacesConfig {
 
     // TODO: discuss - is it possible to create this config using only the graph? mbe some default
     // values, possibly doing impl From<SymbolicContext> for SymbolicSpaceContext?
-    // /// Create a new "default" [TrapSpacesConfig] for the given [SymbolicAsyncGraph].
-    // pub fn with_graph(graph: SymbolicAsyncGraph) -> Self {
-    //     TrapSpacesConfig {
-    //         ctx: graph.symbolic_space_context(),
-    //         restriction: graph.unit_colored_vertices().clone(),
-    //         cancellation: Default::default(),
-    //         graph,
-    //     }
-    // }
+    /// Create a new "default" [TrapSpacesConfig] for the given [SymbolicAsyncGraph].
+    pub fn with_graph(graph: SymbolicAsyncGraph, ctx: SymbolicSpaceContext) -> Self {
+        assert_eq!(graph.symbolic_context().bdd_variable_set().num_vars(), ctx.bdd_variable_set().num_vars());
+        TrapSpacesConfig {
+            restriction: ctx.mk_unit_colored_spaces(&graph),
+            cancellation: Default::default(),
+            graph,
+            ctx,
+        }
+    }
 
     /// Update the `ctx` property
     pub fn with_ctx(mut self, ctx: SymbolicSpaceContext) -> Self {

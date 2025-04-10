@@ -84,7 +84,7 @@ impl FixedPoints {
             .map(|var| {
                 if combined_bdd_size > self.config().bdd_size_limit {
                     return Err(FixedPointsError::BddSizeLimitExceeded(
-                        self.config().restriction.clone(),
+                        self.config().restriction.as_ref().clone(),
                     ));
                 }
 
@@ -279,7 +279,7 @@ impl FixedPoints {
             .map(|var| {
                 if combined_bdd_size > self.config().bdd_size_limit {
                     return Err(FixedPointsError::BddSizeLimitExceeded(
-                        self.config().restriction.clone(),
+                        self.config().restriction.as_ref().clone(),
                     ));
                 }
 
@@ -313,6 +313,7 @@ impl FixedPoints {
         mut projections: HashSet<BddVariable>,
         target: &str,
     ) -> Result<Bdd, FixedPointsError> {
+        let mut restr_copy = self.config().restriction.as_ref().clone();
         // First, assign each merge item a unique integer identifier.
         let mut to_merge: HashMap<usize, Bdd> = to_merge.into_iter().enumerate().collect();
 
@@ -340,7 +341,7 @@ impl FixedPoints {
         let mut result = universe.mk_true();
         let mut merged = HashSet::new();
 
-        is_cancelled!(self)?;
+        is_cancelled!(self, || { self.config().restriction.as_ref().clone() })?;
 
         /*
            Note to self: It seems that not all projections are always beneficial to the BDD size.
@@ -359,7 +360,7 @@ impl FixedPoints {
                     result = result.var_exists(p_var);
                     projections.remove(&p_var);
 
-                    is_cancelled!(self)?;
+                    is_cancelled!(self, || { self.config().restriction.as_ref().clone() })?;
 
                     trace!(
                         target: target,

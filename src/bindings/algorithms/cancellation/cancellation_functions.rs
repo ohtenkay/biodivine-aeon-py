@@ -30,14 +30,14 @@ where
 /// The same as [CancellationHandler::test], but you can provide a partial result that will
 /// be returned if the operation is cancelled. The value is returned back as `Ok` if
 /// the operation is not cancelled (so there should be no need to clone it).
-pub fn test_with_partial<C, T>(handler: &C, partial: T) -> Result<T, CancellationError<T>>
+pub fn test_with_partial<C, T, Comp: FnOnce() -> T>(handler: &C, partial: Comp) -> Result<(), CancellationError<T>>
 where
     C: CancellationHandler,
     T: Sized + Debug + 'static,
 {
     if handler.is_cancelled() {
-        Err(CancellationError::with_partial_data(partial))
+        Err(CancellationError::with_partial_data(partial()))
     } else {
-        Ok(partial)
+        Ok(())
     }
 }

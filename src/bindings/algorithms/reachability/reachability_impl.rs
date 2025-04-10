@@ -2,7 +2,8 @@ use biodivine_lib_param_bn::{
     biodivine_std::traits::Set,
     symbolic_async_graph::{GraphColoredVertices, SymbolicAsyncGraph},
 };
-use log::{debug, info, trace};
+use dyn_clone::DynClone;
+use log::{debug, info, log, trace};
 use pyo3::{pyclass, pymethods, Py, PyResult};
 
 use crate::{
@@ -45,13 +46,40 @@ impl Reachability {
         Reachability(config)
     }
 
-    /// Retrieve the internal [ReachabilityConfig] of this instance.
-    pub fn config(&self) -> &ReachabilityConfig {
+    // /// Retrieve the internal [ReachabilityConfig] of this instance.
+    //pub fn config(&self) -> &ReachabilityConfig {
+    //    &self.0
+    //}
+}
+
+impl Configurable for Reachability {
+    type ConfigType = ReachabilityConfig;
+
+    fn config(&self) -> &Self::ConfigType {
         &self.0
     }
 }
 
-impl CancellationHandler for Reachability {
+trait Configurable {
+    type ConfigType: Config;
+    fn config(&self) -> &Self::ConfigType;
+}
+
+pub trait Config {
+    fn cancellation(&self) -> &dyn CancellationHandler;
+}
+
+impl<T: Configurable + Send + Sync + DynClone> CancellationHandler for T {
+    fn is_cancelled(&self) -> bool {
+        self.config().cancellation().is_cancelled()
+    }
+
+    fn start_timer(&self) {
+        self.config().cancellation().start_timer()
+    }
+} 
+
+/*impl CancellationHandler for Reachability {
     fn is_cancelled(&self) -> bool {
         self.config().cancellation.is_cancelled()
     }
@@ -59,7 +87,7 @@ impl CancellationHandler for Reachability {
     fn start_timer(&self) {
         self.config().cancellation.start_timer();
     }
-}
+}*/
 
 impl Reachability {
     /// Compute the *greatest superset* of the given `initial` set that is forward closed.
@@ -89,14 +117,15 @@ impl Reachability {
 
         'reach: loop {
             for var in variables.iter().rev() {
-                result = is_cancelled!(self, result)?;
+                is_cancelled!(self, || { result.clone() })?;
 
                 let mut successors = graph.var_post_out(*var, &result);
                 if let Some(subgraph) = self.config().subgraph.as_ref() {
                     successors = successors.intersect(subgraph)
                 }
 
-                trace!(target: TARGET_FORWARD_SUPERSET, "Found {} successors for {:?}", successors.approx_cardinality(), var);
+                let log_level = if result.as_bdd().size() > 100_000 { log::Level::Debug } else { log::Level::Trace };
+                log!(target: TARGET_FORWARD_SUPERSET, log_level, "Found {} successors for {:?}", successors.approx_cardinality(), var);
 
                 if !successors.is_empty() {
                     result = result.union(&successors);
@@ -151,7 +180,7 @@ impl Reachability {
 
         'reach: loop {
             for var in variables.iter().rev() {
-                result = is_cancelled!(self, result)?;
+                is_cancelled!(self, || { result.clone() })?;
 
                 let mut predecessors = graph.var_pre_out(*var, &result);
                 if let Some(subgraph) = self.config().subgraph.as_ref() {
@@ -214,7 +243,7 @@ impl Reachability {
 
         'reach: loop {
             for var in variables.iter().rev() {
-                result = is_cancelled!(self, result)?;
+                is_cancelled!(self, || { result.clone() })?;
 
                 let mut can_go_out = graph.var_can_post_out(*var, &result);
                 if let Some(subgraph) = self.config().subgraph.as_ref() {
@@ -281,7 +310,7 @@ impl Reachability {
 
         'reach: loop {
             for var in variables.iter().rev() {
-                result = is_cancelled!(self, result)?;
+                is_cancelled!(self, || { result.clone() })?;
 
                 let mut has_predecessor_outside = graph.var_can_pre_out(*var, &result);
                 if let Some(subgraph) = self.config().subgraph.as_ref() {

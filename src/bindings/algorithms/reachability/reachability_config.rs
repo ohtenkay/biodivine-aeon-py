@@ -9,7 +9,6 @@ use pyo3::{
     types::{PyAnyMethods, PySet, PySetMethods},
     Py, Python,
 };
-
 use crate::{
     bindings::{
         algorithms::cancellation::{
@@ -25,6 +24,7 @@ use crate::{
     },
     AsNative,
 };
+use crate::bindings::algorithms::reachability::reachability_impl::Config;
 
 /// A configuration struct for the [Reachability] algorithms.
 #[pyclass(module = "biodivine_aeon", frozen)]
@@ -74,6 +74,12 @@ pub struct ReachabilityConfig {
     ///
     /// Default: `usize::MAX`.
     pub steps_limit: usize,
+}
+
+impl Config for ReachabilityConfig {
+    fn cancellation(&self) -> &dyn CancellationHandler {
+        self.cancellation.as_ref()
+    }
 }
 
 impl ReachabilityConfig {

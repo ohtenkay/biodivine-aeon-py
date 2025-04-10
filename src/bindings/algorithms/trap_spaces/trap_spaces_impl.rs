@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-
+use biodivine_lib_bdd::bdd;
 use biodivine_lib_param_bn::{
     biodivine_std::traits::Set, fixed_points::FixedPoints, trap_spaces::NetworkColoredSpaces,
     BooleanNetwork,
@@ -82,30 +82,31 @@ impl TrapSpaces {
             is_cancelled!(self)?;
 
             // TODO: discuss - how to rewrite _mk_can_go_to_true?
-            let has_up_transition = ctx.mk_can_go_to_true(update_bdd);
+            let has_up_transition = &ctx.mk_can_go_to_true(update_bdd);
             is_cancelled!(self)?;
 
             // TODO: discuss - how to rewrite _mk_can_go_to_true?
-            let has_down_transition = ctx.mk_can_go_to_true(&not_update_bdd);
+            let has_down_transition = &ctx.mk_can_go_to_true(&not_update_bdd);
             is_cancelled!(self)?;
 
             let true_var = ctx.get_positive_variable(var);
             let false_var = ctx.get_negative_variable(var);
 
-            let is_trap_1 = has_up_transition.imp(&bdd_ctx.mk_var(true_var));
-            let is_trap_2 = has_down_transition.imp(&bdd_ctx.mk_var(false_var));
-            let is_trap = is_trap_1.and(&is_trap_2);
-            is_cancelled!(self)?;
-
-            let is_essential_1 = bdd_ctx.mk_var(true_var).and(&bdd_ctx.mk_var(false_var));
-            let is_essential_2 = has_up_transition.and(&has_down_transition);
-            let is_essential = is_essential_1.imp(&is_essential_2);
-            is_cancelled!(self)?;
+            // let is_trap_1 = has_up_transition.imp(&bdd_ctx.mk_var(true_var));
+            // let is_trap_2 = has_down_transition.imp(&bdd_ctx.mk_var(false_var));
+            // let is_trap = is_trap_1.and(&is_trap_2);
+            // is_cancelled!(self)?;
+            // 
+            // let is_essential_1 = bdd_ctx.mk_var(true_var).and(&bdd_ctx.mk_var(false_var));
+            // let is_essential_2 = has_up_transition.and(&has_down_transition);
+            // let is_essential = is_essential_1.imp(&is_essential_2);
+            // is_cancelled!(self)?;
 
             // TODO: discuss - ask about this
             // This will work in next version of lib-bdd:
-            // let is_trap = bdd!(bdd_ctx, (has_up_transition => true_var) & (has_down_transition => false_var));
-            // let is_essential = bdd!(bdd_ctx, (true_var & false_var) => (has_up_transition & has_down_transition));
+            let is_trap = bdd!(bdd_ctx, (has_up_transition => true_var) & (has_down_transition => false_var));
+            let is_essential = bdd!(bdd_ctx, (true_var & false_var) => (has_up_transition & has_down_transition));
+            is_cancelled!(self)?;
 
             debug!(
                 " > Created initial sets for {:?} using {}+{} BDD nodes.",
@@ -186,6 +187,10 @@ impl TrapSpaces {
             //  space enumeration to avoid spaces that are clearly irrelevant anyway.
             // TODO: discuss - rewrite _mk_super_spaces?
             let super_spaces = ctx.mk_super_spaces(minimum_candidate.as_bdd());
+            for var in ctx.inner_context().network_variables() {
+                let t_var = ctx.get_positive_variable(var);
+                let f_var = ctx.get_negative_variable(var);
+            }
             let super_spaces = NetworkColoredSpaces::new(super_spaces, ctx);
             is_cancelled!(self)?;
 

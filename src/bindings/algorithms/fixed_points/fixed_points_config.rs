@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use biodivine_lib_param_bn::symbolic_async_graph::{GraphColoredVertices, SymbolicAsyncGraph};
@@ -19,8 +20,8 @@ use crate::{
 
 #[derive(Clone)]
 pub struct FixedPointsConfig {
-    pub graph: SymbolicAsyncGraph,
-    pub restriction: GraphColoredVertices,
+    pub graph: Arc<SymbolicAsyncGraph>,
+    pub restriction: Arc<GraphColoredVertices>,
     pub cancellation: Box<dyn CancellationHandler>,
     pub bdd_size_limit: usize,
 }
@@ -29,16 +30,16 @@ impl FixedPointsConfig {
     /// Create a new "default" [FixedPointsCongfig] for the given [SymbolicAsyncGraph].
     pub fn with_graph(graph: SymbolicAsyncGraph) -> Self {
         FixedPointsConfig {
-            restriction: graph.unit_colored_vertices().clone(),
+            restriction: Arc::new(graph.unit_colored_vertices().clone()),
             cancellation: Default::default(),
             bdd_size_limit: usize::MAX,
-            graph,
+            graph: Arc::new(graph),
         }
     }
 
     /// Update the `restriction` property
     pub fn with_restriction(mut self, restriction: GraphColoredVertices) -> Self {
-        self.restriction = restriction;
+        self.restriction = Arc::new(restriction);
         self
     }
 
